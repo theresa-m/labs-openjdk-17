@@ -107,20 +107,30 @@ public class ObjectStreamClass implements Serializable {
             new ReflectionFactory.GetReflectionFactoryAction());
 
     private static class Caches {
-        /** cache mapping local classes -> descriptors */
-        static final ConcurrentMap<WeakClassKey,Reference<?>> localDescs =
-            new ConcurrentHashMap<>();
+        static class RuntimeHelper {
+            /**
+             * cache mapping local classes -> descriptors
+             */
+            static final ConcurrentMap<WeakClassKey, Reference<?>> localDescs =
+                    new ConcurrentHashMap<>();
 
-        /** cache mapping field group/local desc pairs -> field reflectors */
-        static final ConcurrentMap<FieldReflectorKey,Reference<?>> reflectors =
-            new ConcurrentHashMap<>();
+            /**
+             * cache mapping field group/local desc pairs -> field reflectors
+             */
+            static final ConcurrentMap<FieldReflectorKey, Reference<?>> reflectors =
+                    new ConcurrentHashMap<>();
 
-        /** queue for WeakReferences to local classes */
-        private static final ReferenceQueue<Class<?>> localDescsQueue =
-            new ReferenceQueue<>();
-        /** queue for WeakReferences to field reflectors keys */
-        private static final ReferenceQueue<Class<?>> reflectorsQueue =
-            new ReferenceQueue<>();
+            /**
+             * queue for WeakReferences to local classes
+             */
+            private static final ReferenceQueue<Class<?>> localDescsQueue =
+                    new ReferenceQueue<>();
+            /**
+             * queue for WeakReferences to field reflectors keys
+             */
+            private static final ReferenceQueue<Class<?>> reflectorsQueue =
+                    new ReferenceQueue<>();
+        }
     }
 
     /** class associated with this descriptor (if any) */
@@ -362,9 +372,9 @@ public class ObjectStreamClass implements Serializable {
         if (!(all || Serializable.class.isAssignableFrom(cl))) {
             return null;
         }
-        processQueue(Caches.localDescsQueue, Caches.localDescs);
-        WeakClassKey key = new WeakClassKey(cl, Caches.localDescsQueue);
-        Reference<?> ref = Caches.localDescs.get(key);
+        processQueue(Caches.RuntimeHelper.localDescsQueue, Caches.RuntimeHelper.localDescs);
+        WeakClassKey key = new WeakClassKey(cl, Caches.RuntimeHelper.localDescsQueue);
+        Reference<?> ref = Caches.RuntimeHelper.localDescs.get(key);
         Object entry = null;
         if (ref != null) {
             entry = ref.get();
@@ -375,9 +385,9 @@ public class ObjectStreamClass implements Serializable {
             Reference<?> newRef = new SoftReference<>(newEntry);
             do {
                 if (ref != null) {
-                    Caches.localDescs.remove(key, ref);
+                    Caches.RuntimeHelper.localDescs.remove(key, ref);
                 }
-                ref = Caches.localDescs.putIfAbsent(key, newRef);
+                ref = Caches.RuntimeHelper.localDescs.putIfAbsent(key, newRef);
                 if (ref != null) {
                     entry = ref.get();
                 }
@@ -411,7 +421,7 @@ public class ObjectStreamClass implements Serializable {
                 entry = th;
             }
             if (future.set(entry)) {
-                Caches.localDescs.put(key, new SoftReference<>(entry));
+                Caches.RuntimeHelper.localDescs.put(key, new SoftReference<>(entry));
             } else {
                 // nested lookup call already set future
                 entry = future.get();
@@ -2251,10 +2261,10 @@ public class ObjectStreamClass implements Serializable {
         // class irrelevant if no fields
         Class<?> cl = (localDesc != null && fields.length > 0) ?
             localDesc.cl : null;
-        processQueue(Caches.reflectorsQueue, Caches.reflectors);
+        processQueue(Caches.RuntimeHelper.reflectorsQueue, Caches.RuntimeHelper.reflectors);
         FieldReflectorKey key = new FieldReflectorKey(cl, fields,
-                                                      Caches.reflectorsQueue);
-        Reference<?> ref = Caches.reflectors.get(key);
+                                                      Caches.RuntimeHelper.reflectorsQueue);
+        Reference<?> ref = Caches.RuntimeHelper.reflectors.get(key);
         Object entry = null;
         if (ref != null) {
             entry = ref.get();
@@ -2265,9 +2275,9 @@ public class ObjectStreamClass implements Serializable {
             Reference<?> newRef = new SoftReference<>(newEntry);
             do {
                 if (ref != null) {
-                    Caches.reflectors.remove(key, ref);
+                    Caches.RuntimeHelper.reflectors.remove(key, ref);
                 }
-                ref = Caches.reflectors.putIfAbsent(key, newRef);
+                ref = Caches.RuntimeHelper.reflectors.putIfAbsent(key, newRef);
                 if (ref != null) {
                     entry = ref.get();
                 }
@@ -2288,7 +2298,7 @@ public class ObjectStreamClass implements Serializable {
                 entry = th;
             }
             future.set(entry);
-            Caches.reflectors.put(key, new SoftReference<>(entry));
+            Caches.RuntimeHelper.reflectors.put(key, new SoftReference<>(entry));
         }
 
         if (entry instanceof FieldReflector) {

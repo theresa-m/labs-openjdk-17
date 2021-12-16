@@ -52,9 +52,11 @@ public final class FileDescriptor {
     private long handle;
 
     private Closeable parent;
-    private List<Closeable> otherParents;
+    private RuntimeHelper rh;
+    class RuntimeHelper {
+        private List<Closeable> otherParents = null;
+    }
     private boolean closed;
-
     /**
      * true, if file is opened for appending.
      */
@@ -126,6 +128,7 @@ public final class FileDescriptor {
     public FileDescriptor() {
         fd = -1;
         handle = -1;
+        rh = new RuntimeHelper();
     }
 
     /**
@@ -138,6 +141,7 @@ public final class FileDescriptor {
         this.fd = fd;
         this.handle = getHandle(fd);
         this.append = getAppend(fd);
+        rh = new RuntimeHelper();
     }
 
     /**
@@ -318,12 +322,12 @@ public final class FileDescriptor {
         if (parent == null) {
             // first caller gets to do this
             parent = c;
-        } else if (otherParents == null) {
-            otherParents = new ArrayList<>();
-            otherParents.add(parent);
-            otherParents.add(c);
+        } else if (rh.otherParents == null) {
+            rh.otherParents = new ArrayList<>();
+            rh.otherParents.add(parent);
+            rh.otherParents.add(c);
         } else {
-            otherParents.add(c);
+            rh.otherParents.add(c);
         }
     }
 
@@ -339,8 +343,8 @@ public final class FileDescriptor {
             closed = true;
             IOException ioe = null;
             try (releaser) {
-                if (otherParents != null) {
-                    for (Closeable referent : otherParents) {
+                if (rh.otherParents != null) {
+                    for (Closeable referent : rh.otherParents) {
                         try {
                             referent.close();
                         } catch(IOException x) {
