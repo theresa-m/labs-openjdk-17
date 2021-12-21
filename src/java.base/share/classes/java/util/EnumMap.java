@@ -363,7 +363,10 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * view the first time this view is requested.  The view is stateless,
      * so there's no reason to create more than one.
      */
-    private transient Set<Map.Entry<K,V>> entrySet;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        private transient Set<Map.Entry<K, V>> entrySet = null;
+    }
 
     /**
      * Returns a {@link Set} view of the keys contained in this map.
@@ -375,10 +378,10 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * @return a set view of the keys contained in this enum map
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh_abstractmap.keySet;
         if (ks == null) {
             ks = new KeySet();
-            keySet = ks;
+            rh_abstractmap.keySet = ks;
         }
         return ks;
     }
@@ -414,10 +417,10 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * @return a collection view of the values contained in this map
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh_abstractmap.values;
         if (vs == null) {
             vs = new Values();
-            values = vs;
+            rh_abstractmap.values = vs;
         }
         return vs;
     }
@@ -459,11 +462,11 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      * @return a set view of the mappings contained in this enum map
      */
     public Set<Map.Entry<K,V>> entrySet() {
-        Set<Map.Entry<K,V>> es = entrySet;
+        Set<Map.Entry<K,V>> es = rh.entrySet;
         if (es != null)
             return es;
         else
-            return entrySet = new EntrySet();
+            return rh.entrySet = new EntrySet();
     }
 
     private class EntrySet extends AbstractSet<Map.Entry<K,V>> {
@@ -725,7 +728,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
             throw new AssertionError();
         }
         result.vals = result.vals.clone();
-        result.entrySet = null;
+        result.rh.entrySet = null;
         return result;
     }
 

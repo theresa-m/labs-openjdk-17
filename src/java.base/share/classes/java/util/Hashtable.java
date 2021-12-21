@@ -565,9 +565,9 @@ public class Hashtable<K,V>
             t.table[i] = (table[i] != null)
                 ? (Entry<?,?>) table[i].clone() : null;
         }
-        t.keySet = null;
-        t.entrySet = null;
-        t.values = null;
+        t.rh.keySet = null;
+        t.rh.entrySet = null;
+        t.rh.values = null;
         t.modCount = 0;
         return t;
     }
@@ -634,14 +634,17 @@ public class Hashtable<K,V>
 
     // Views
 
-    /**
-     * Each of these fields are initialized to contain an instance of the
-     * appropriate view the first time this view is requested.  The views are
-     * stateless, so there's no reason to create more than one of each.
-     */
-    private transient volatile Set<K> keySet;
-    private transient volatile Set<Map.Entry<K,V>> entrySet;
-    private transient volatile Collection<V> values;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        /**
+         * Each of these fields are initialized to contain an instance of the
+         * appropriate view the first time this view is requested.  The views are
+         * stateless, so there's no reason to create more than one of each.
+         */
+        private transient volatile Set<K> keySet = null;
+        private transient volatile Set<Map.Entry<K,V>> entrySet =null;
+        private transient volatile Collection<V> values = null;
+    }
 
     /**
      * Returns a {@link Set} view of the keys contained in this map.
@@ -659,9 +662,9 @@ public class Hashtable<K,V>
      * @since 1.2
      */
     public Set<K> keySet() {
-        if (keySet == null)
-            keySet = Collections.synchronizedSet(new KeySet(), this);
-        return keySet;
+        if (rh.keySet == null)
+            rh.keySet = Collections.synchronizedSet(new KeySet(), this);
+        return rh.keySet;
     }
 
     private class KeySet extends AbstractSet<K> {
@@ -699,9 +702,9 @@ public class Hashtable<K,V>
      * @since 1.2
      */
     public Set<Map.Entry<K,V>> entrySet() {
-        if (entrySet==null)
-            entrySet = Collections.synchronizedSet(new EntrySet(), this);
-        return entrySet;
+        if (rh.entrySet==null)
+            rh.entrySet = Collections.synchronizedSet(new EntrySet(), this);
+        return rh.entrySet;
     }
 
     private class EntrySet extends AbstractSet<Map.Entry<K,V>> {
@@ -778,10 +781,10 @@ public class Hashtable<K,V>
      * @since 1.2
      */
     public Collection<V> values() {
-        if (values==null)
-            values = Collections.synchronizedCollection(new ValueCollection(),
+        if (rh.values==null)
+            rh.values = Collections.synchronizedCollection(new ValueCollection(),
                                                         this);
-        return values;
+        return rh.values;
     }
 
     private class ValueCollection extends AbstractCollection<V> {

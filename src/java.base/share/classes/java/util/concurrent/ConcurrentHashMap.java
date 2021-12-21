@@ -815,9 +815,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     private transient volatile CounterCell[] counterCells;
 
     // views
-    private transient KeySetView<K,V> keySet;
-    private transient ValuesView<K,V> values;
-    private transient EntrySetView<K,V> entrySet;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        private transient KeySetView<K, V> keySet = null;
+        private transient ValuesView<K, V> values = null;
+        private transient EntrySetView<K, V> entrySet = null;
+    }
 
 
     /* ---------------- Public operations -------------- */
@@ -1235,8 +1238,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public KeySetView<K,V> keySet() {
         KeySetView<K,V> ks;
-        if ((ks = keySet) != null) return ks;
-        return keySet = new KeySetView<K,V>(this, null);
+        if ((ks = rh.keySet) != null) return ks;
+        return rh.keySet = new KeySetView<K,V>(this, null);
     }
 
     /**
@@ -1259,8 +1262,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public Collection<V> values() {
         ValuesView<K,V> vs;
-        if ((vs = values) != null) return vs;
-        return values = new ValuesView<K,V>(this);
+        if ((vs = rh.values) != null) return vs;
+        return rh.values = new ValuesView<K,V>(this);
     }
 
     /**
@@ -1282,8 +1285,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public Set<Map.Entry<K,V>> entrySet() {
         EntrySetView<K,V> es;
-        if ((es = entrySet) != null) return es;
-        return entrySet = new EntrySetView<K,V>(this);
+        if ((es = rh.entrySet) != null) return es;
+        return rh.entrySet = new EntrySetView<K,V>(this);
     }
 
     /**

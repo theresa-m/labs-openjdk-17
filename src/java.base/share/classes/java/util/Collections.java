@@ -1514,26 +1514,29 @@ public class Collections {
             throw new UnsupportedOperationException();
         }
 
-        private transient Set<K> keySet;
-        private transient Set<Map.Entry<K,V>> entrySet;
-        private transient Collection<V> values;
+        private RuntimeHelper rh = new RuntimeHelper();
+        class RuntimeHelper {
+            private transient Set<K> keySet = null;
+            private transient Set<Map.Entry<K, V>> entrySet = null;
+            private transient Collection<V> values = null;
+        }
 
         public Set<K> keySet() {
-            if (keySet==null)
-                keySet = unmodifiableSet(m.keySet());
-            return keySet;
+            if (rh.keySet==null)
+                rh.keySet = unmodifiableSet(m.keySet());
+            return rh.keySet;
         }
 
         public Set<Map.Entry<K,V>> entrySet() {
-            if (entrySet==null)
-                entrySet = new UnmodifiableEntrySet<>(m.entrySet());
-            return entrySet;
+            if (rh.entrySet==null)
+                rh.entrySet = new UnmodifiableEntrySet<>(m.entrySet());
+            return rh.entrySet;
         }
 
         public Collection<V> values() {
-            if (values==null)
-                values = unmodifiableCollection(m.values());
-            return values;
+            if (rh.values==null)
+                rh.values = unmodifiableCollection(m.values());
+            return rh.values;
         }
 
         public boolean equals(Object o) {return o == this || m.equals(o);}
@@ -2685,31 +2688,34 @@ public class Collections {
             synchronized (mutex) {m.clear();}
         }
 
-        private transient Set<K> keySet;
-        private transient Set<Map.Entry<K,V>> entrySet;
-        private transient Collection<V> values;
+        private RuntimeHelper rh = new RuntimeHelper();
+        class RuntimeHelper {
+            private transient Set<K> keySet = null;
+            private transient Set<Map.Entry<K, V>> entrySet = null;
+            private transient Collection<V> values = null;
+        }
 
         public Set<K> keySet() {
             synchronized (mutex) {
-                if (keySet==null)
-                    keySet = new SynchronizedSet<>(m.keySet(), mutex);
-                return keySet;
+                if (rh.keySet==null)
+                    rh.keySet = new SynchronizedSet<>(m.keySet(), mutex);
+                return rh.keySet;
             }
         }
 
         public Set<Map.Entry<K,V>> entrySet() {
             synchronized (mutex) {
-                if (entrySet==null)
-                    entrySet = new SynchronizedSet<>(m.entrySet(), mutex);
-                return entrySet;
+                if (rh.entrySet==null)
+                    rh.entrySet = new SynchronizedSet<>(m.entrySet(), mutex);
+                return rh.entrySet;
             }
         }
 
         public Collection<V> values() {
             synchronized (mutex) {
-                if (values==null)
-                    values = new SynchronizedCollection<>(m.values(), mutex);
-                return values;
+                if (rh.values==null)
+                    rh.values = new SynchronizedCollection<>(m.values(), mutex);
+                return rh.values;
             }
         }
 

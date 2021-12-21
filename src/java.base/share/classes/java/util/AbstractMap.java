@@ -324,8 +324,11 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * }
      *}</pre>
      */
-    transient Set<K>        keySet;
-    transient Collection<V> values;
+    RuntimeHelper rh_abstractmap = new RuntimeHelper();
+    class RuntimeHelper {
+        transient Set<K> keySet = null;
+        transient Collection<V> values = null;
+    }
 
     /**
      * {@inheritDoc}
@@ -344,7 +347,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * method will not all return the same set.
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh_abstractmap.keySet;
         if (ks == null) {
             ks = new AbstractSet<K>() {
                 public Iterator<K> iterator() {
@@ -381,7 +384,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
                     return AbstractMap.this.containsKey(k);
                 }
             };
-            keySet = ks;
+            rh_abstractmap.keySet = ks;
         }
         return ks;
     }
@@ -403,7 +406,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * method will not all return the same collection.
      */
     public Collection<V> values() {
-        Collection<V> vals = values;
+        Collection<V> vals = rh_abstractmap.values;
         if (vals == null) {
             vals = new AbstractCollection<V>() {
                 public Iterator<V> iterator() {
@@ -440,7 +443,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
                     return AbstractMap.this.containsValue(v);
                 }
             };
-            values = vals;
+            rh_abstractmap.values = vals;
         }
         return vals;
     }
@@ -567,8 +570,8 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      */
     protected Object clone() throws CloneNotSupportedException {
         AbstractMap<?,?> result = (AbstractMap<?,?>)super.clone();
-        result.keySet = null;
-        result.values = null;
+        result.rh_abstractmap.keySet = null;
+        result.rh_abstractmap.values = null;
         return result;
     }
 

@@ -341,14 +341,26 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
     private transient Index<K,V> head;
     /** Lazily initialized element count */
     private transient LongAdder adder;
-    /** Lazily initialized key set */
-    private transient KeySet<K,V> keySet;
-    /** Lazily initialized values collection */
-    private transient Values<K,V> values;
-    /** Lazily initialized entry set */
-    private transient EntrySet<K,V> entrySet;
-    /** Lazily initialized descending map */
-    private transient SubMap<K,V> descendingMap;
+
+    private RuntimeHelper rh_concurrentskiplistmap = new RuntimeHelper();
+    class RuntimeHelper {
+        /**
+         * Lazily initialized key set
+         */
+        private transient KeySet<K, V> keySet = null;
+        /**
+         * Lazily initialized values collection
+         */
+        private transient Values<K, V> values = null;
+        /**
+         * Lazily initialized entry set
+         */
+        private transient EntrySet<K, V> entrySet = null;
+        /**
+         * Lazily initialized descending map
+         */
+        private transient SubMap<K, V> descendingMap = null;
+    }
 
     /**
      * Nodes hold keys and values, and are singly linked in sorted
@@ -1126,10 +1138,10 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             @SuppressWarnings("unchecked")
             ConcurrentSkipListMap<K,V> clone =
                 (ConcurrentSkipListMap<K,V>) super.clone();
-            clone.keySet = null;
-            clone.entrySet = null;
-            clone.values = null;
-            clone.descendingMap = null;
+            clone.rh_concurrentskiplistmap.keySet = null;
+            clone.rh_concurrentskiplistmap.entrySet = null;
+            clone.rh_concurrentskiplistmap.values = null;
+            clone.rh_concurrentskiplistmap.descendingMap = null;
             clone.adder = null;
             clone.buildFromSorted(this);
             return clone;
@@ -1612,14 +1624,14 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
      */
     public NavigableSet<K> keySet() {
         KeySet<K,V> ks;
-        if ((ks = keySet) != null) return ks;
-        return keySet = new KeySet<>(this);
+        if ((ks = rh_concurrentskiplistmap.keySet) != null) return ks;
+        return rh_concurrentskiplistmap.keySet = new KeySet<>(this);
     }
 
     public NavigableSet<K> navigableKeySet() {
         KeySet<K,V> ks;
-        if ((ks = keySet) != null) return ks;
-        return keySet = new KeySet<>(this);
+        if ((ks = rh_concurrentskiplistmap.keySet) != null) return ks;
+        return rh_concurrentskiplistmap.keySet = new KeySet<>(this);
     }
 
     /**
@@ -1643,8 +1655,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
      */
     public Collection<V> values() {
         Values<K,V> vs;
-        if ((vs = values) != null) return vs;
-        return values = new Values<>(this);
+        if ((vs = rh_concurrentskiplistmap.values) != null) return vs;
+        return rh_concurrentskiplistmap.values = new Values<>(this);
     }
 
     /**
@@ -1676,14 +1688,14 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
      */
     public Set<Map.Entry<K,V>> entrySet() {
         EntrySet<K,V> es;
-        if ((es = entrySet) != null) return es;
-        return entrySet = new EntrySet<K,V>(this);
+        if ((es = rh_concurrentskiplistmap.entrySet) != null) return es;
+        return rh_concurrentskiplistmap.entrySet = new EntrySet<K,V>(this);
     }
 
     public ConcurrentNavigableMap<K,V> descendingMap() {
         ConcurrentNavigableMap<K,V> dm;
-        if ((dm = descendingMap) != null) return dm;
-        return descendingMap =
+        if ((dm = rh_concurrentskiplistmap.descendingMap) != null) return dm;
+        return rh_concurrentskiplistmap.descendingMap =
             new SubMap<K,V>(this, null, false, null, false, true);
     }
 
