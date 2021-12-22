@@ -309,8 +309,6 @@ public abstract class ClassLoader {
 
         // Maps class name to the corresponding lock object when the current
         // class loader is parallel capable.
-        // Note: VM also uses this field to decide if the current class loader
-        // is parallel capable and the appropriate lock object for class loading.
         private final ConcurrentHashMap<String, Object> parallelLockMap = new ConcurrentHashMap<>();
     }
 
