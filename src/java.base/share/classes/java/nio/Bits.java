@@ -39,6 +39,23 @@ import java.util.concurrent.atomic.AtomicLong;
 
 class Bits {                            // package-private
 
+    class RuntimeHelper {
+        /* Ensure lazy initialization of page size happens at image runtime. */
+        private static int PAGE_SIZE = -1;
+
+        /* Ensure lazy initialization of maximum direct memory size happens at image runtime. */
+        private static volatile boolean MEMORY_LIMIT_SET = false;
+        // A user-settable upper limit on the maximum amount of allocatable
+        // direct buffer memory.  This value may be changed during VM
+        // initialization if it is launched with "-XX:MaxDirectMemorySize=<size>".
+        private static volatile long MAX_MEMORY = VM.maxDirectMemory();
+
+        /* Do not inherit any memory statistics from the image generator. */
+        private static final AtomicLong RESERVED_MEMORY = new AtomicLong();
+        private static final AtomicLong TOTAL_CAPACITY = new AtomicLong();
+        private static final AtomicLong COUNT = new AtomicLong();
+    }
+
     private Bits() { }
 
 
@@ -67,12 +84,10 @@ class Bits {                            // package-private
 
     // -- Processor and memory-system properties --
 
-    private static int PAGE_SIZE = -1;
-
     static int pageSize() {
-        if (PAGE_SIZE == -1)
-            PAGE_SIZE = UNSAFE.pageSize();
-        return PAGE_SIZE;
+        if (RuntimeHelper.PAGE_SIZE == -1)
+            RuntimeHelper.PAGE_SIZE = UNSAFE.pageSize();
+        return RuntimeHelper.PAGE_SIZE;
     }
 
     static long pageCount(long size) {
@@ -88,15 +103,6 @@ class Bits {                            // package-private
 
     // -- Direct memory management --
 
-    // A user-settable upper limit on the maximum amount of allocatable
-    // direct buffer memory.  This value may be changed during VM
-    // initialization if it is launched with "-XX:MaxDirectMemorySize=<size>".
-    private static volatile long MAX_MEMORY = VM.maxDirectMemory();
-    private static final AtomicLong RESERVED_MEMORY = new AtomicLong();
-    private static final AtomicLong TOTAL_CAPACITY = new AtomicLong();
-    private static final AtomicLong COUNT = new AtomicLong();
-    private static volatile boolean MEMORY_LIMIT_SET;
-
     // max. number of sleeps during try-reserving with exponentially
     // increasing delay before throwing OutOfMemoryError:
     // 1, 2, 4, 8, 16, 32, 64, 128, 256 (total 511 ms ~ 0.5 s)
@@ -108,9 +114,9 @@ class Bits {                            // package-private
     // which a process may access.  All sizes are specified in bytes.
     static void reserveMemory(long size, long cap) {
 
-        if (!MEMORY_LIMIT_SET && VM.initLevel() >= 1) {
-            MAX_MEMORY = VM.maxDirectMemory();
-            MEMORY_LIMIT_SET = true;
+        if (!RuntimeHelper.MEMORY_LIMIT_SET && VM.initLevel() >= 1) {
+            RuntimeHelper.MAX_MEMORY = VM.maxDirectMemory();
+            RuntimeHelper.MEMORY_LIMIT_SET = true;
         }
 
         // optimist!
@@ -175,7 +181,7 @@ class Bits {                            // package-private
             throw new OutOfMemoryError
                 ("Cannot reserve "
                  + size + " bytes of direct buffer memory (allocated: "
-                 + RESERVED_MEMORY.get() + ", limit: " + MAX_MEMORY +")");
+                 + RuntimeHelper.RESERVED_MEMORY.get() + ", limit: " + RuntimeHelper.MAX_MEMORY +")");
 
         } finally {
             if (interrupted) {
@@ -191,10 +197,10 @@ class Bits {                            // package-private
         // actual memory usage, which will differ when buffers are page
         // aligned.
         long totalCap;
-        while (cap <= MAX_MEMORY - (totalCap = TOTAL_CAPACITY.get())) {
-            if (TOTAL_CAPACITY.compareAndSet(totalCap, totalCap + cap)) {
-                RESERVED_MEMORY.addAndGet(size);
-                COUNT.incrementAndGet();
+        while (cap <= RuntimeHelper.MAX_MEMORY - (totalCap = RuntimeHelper.TOTAL_CAPACITY.get())) {
+            if (RuntimeHelper.TOTAL_CAPACITY.compareAndSet(totalCap, totalCap + cap)) {
+                RuntimeHelper.RESERVED_MEMORY.addAndGet(size);
+                RuntimeHelper.COUNT.incrementAndGet();
                 return true;
             }
         }
@@ -204,9 +210,9 @@ class Bits {                            // package-private
 
 
     static void unreserveMemory(long size, long cap) {
-        long cnt = COUNT.decrementAndGet();
-        long reservedMem = RESERVED_MEMORY.addAndGet(-size);
-        long totalCap = TOTAL_CAPACITY.addAndGet(-cap);
+        long cnt = RuntimeHelper.COUNT.decrementAndGet();
+        long reservedMem = RuntimeHelper.RESERVED_MEMORY.addAndGet(-size);
+        long totalCap = RuntimeHelper.TOTAL_CAPACITY.addAndGet(-cap);
         assert cnt >= 0 && reservedMem >= 0 && totalCap >= 0;
     }
 
@@ -217,15 +223,15 @@ class Bits {                            // package-private
         }
         @Override
         public long getCount() {
-            return Bits.COUNT.get();
+            return Bits.RuntimeHelper.COUNT.get();
         }
         @Override
         public long getTotalCapacity() {
-            return Bits.TOTAL_CAPACITY.get();
+            return Bits.RuntimeHelper.TOTAL_CAPACITY.get();
         }
         @Override
         public long getMemoryUsed() {
-            return Bits.RESERVED_MEMORY.get();
+            return Bits.RuntimeHelper.RESERVED_MEMORY.get();
         }
     };
 
