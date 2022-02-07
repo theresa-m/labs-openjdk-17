@@ -294,21 +294,23 @@ public abstract class ClassLoader {
         }
     }
 
-    // Maps class name to the corresponding lock object when the current
-    // class loader is parallel capable.
-    // Note: VM also uses this field to decide if the current class loader
-    // is parallel capable and the appropriate lock object for class loading.
-    private final ConcurrentHashMap<String, Object> parallelLockMap;
-
     // Maps packages to certs
     private final ConcurrentHashMap<String, Certificate[]> package2certs;
 
     // Shared among all packages with unsigned classes
     private static final Certificate[] nocerts = new Certificate[0];
 
-    // The classes loaded by this class loader. The only purpose of this table
-    // is to keep the classes from being GC'ed until the loader is GC'ed.
-    private final ArrayList<Class<?>> classes = new ArrayList<>();
+    private RuntimeHelper rh = new RuntimeHelper();
+    private boolean isParallelCapable;
+    class RuntimeHelper {
+        // The classes loaded by this class loader. The only purpose of this table
+        // is to keep the classes from being GC'ed until the loader is GC'ed.
+        private final ArrayList<Class<?>> classes = new ArrayList<>();
+
+        // Maps class name to the corresponding lock object when the current
+        // class loader is parallel capable.
+        private final ConcurrentHashMap<String, Object> parallelLockMap = new ConcurrentHashMap<>();
+    }
 
     // The "default" domain. Set as the default ProtectionDomain on newly
     // created classes.
@@ -318,8 +320,8 @@ public abstract class ClassLoader {
 
     // Invoked by the VM to record every loaded class with this loader.
     void addClass(Class<?> c) {
-        synchronized (classes) {
-            classes.add(c);
+        synchronized (rh.classes) {
+            rh.classes.add(c);
         }
     }
 
@@ -378,11 +380,11 @@ public abstract class ClassLoader {
         this.parent = parent;
         this.unnamedModule = new Module(this);
         if (ParallelLoaders.isRegistered(this.getClass())) {
-            parallelLockMap = new ConcurrentHashMap<>();
+            isParallelCapable = true;
             assertionLock = new Object();
         } else {
             // no finer-grained lock; lock on the classloader instance
-            parallelLockMap = null;
+            isParallelCapable = false;
             assertionLock = this;
         }
         this.package2certs = new ConcurrentHashMap<>();
@@ -661,9 +663,9 @@ public abstract class ClassLoader {
      */
     protected Object getClassLoadingLock(String className) {
         Object lock = this;
-        if (parallelLockMap != null) {
+        if (isParallelCapable) {
             Object newLock = new Object();
-            lock = parallelLockMap.putIfAbsent(className, newLock);
+            lock = rh.parallelLockMap.putIfAbsent(className, newLock);
             if (lock == null) {
                 lock = newLock;
             }
@@ -2701,10 +2703,10 @@ public abstract class ClassLoader {
      * Called by the VM, during -Xshare:dump
      */
     private void resetArchivedStates() {
-        parallelLockMap.clear();
+        rh.parallelLockMap.clear();
         packages.clear();
         package2certs.clear();
-        classes.clear();
+        rh.classes.clear();
         classLoaderValueMap = null;
     }
 }

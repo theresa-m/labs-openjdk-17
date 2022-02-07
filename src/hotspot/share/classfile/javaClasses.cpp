@@ -4328,7 +4328,6 @@ void java_lang_ClassLoader::release_set_loader_data(oop loader, ClassLoaderData*
 }
 
 #define CLASSLOADER_FIELDS_DO(macro) \
-  macro(_parallelCapable_offset, k1, "parallelLockMap",      concurrenthashmap_signature, false); \
   macro(_name_offset,            k1, vmSymbols::name_name(), string_signature, false); \
   macro(_nameAndId_offset,       k1, "nameAndId",            string_signature, false); \
   macro(_unnamedModule_offset,   k1, "unnamedModule",        module_signature, false); \
