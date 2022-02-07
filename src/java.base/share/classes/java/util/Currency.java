@@ -136,10 +136,10 @@ public final class Currency implements Serializable {
      */
     private final transient int numericCode;
 
-
-    // class data: instance map
-
-    private static ConcurrentMap<String, Currency> instances = new ConcurrentHashMap<>(7);
+    private class RuntimeHelper {
+        // class data: instance map
+        private static ConcurrentMap<String, Currency> instances = new ConcurrentHashMap<>(7);
+    }
     private static HashSet<Currency> available;
 
     // Class data: currency data obtained from currency.data file.
@@ -303,7 +303,7 @@ public final class Currency implements Serializable {
         // Try to look up the currency code in the instances table.
         // This does the null pointer check as a side effect.
         // Also, if there already is an entry, the currencyCode must be valid.
-        Currency instance = instances.get(currencyCode);
+        Currency instance = RuntimeHelper.instances.get(currencyCode);
         if (instance != null) {
             return instance;
         }
@@ -346,7 +346,7 @@ public final class Currency implements Serializable {
 
         Currency currencyVal =
             new Currency(currencyCode, defaultFractionDigits, numericCode);
-        instance = instances.putIfAbsent(currencyCode, currencyVal);
+        instance = RuntimeHelper.instances.putIfAbsent(currencyCode, currencyVal);
         return (instance != null ? instance : currencyVal);
     }
 
