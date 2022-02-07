@@ -113,17 +113,18 @@ public class URLClassPath {
         DEBUG_CP_URL_CHECK = p != null ? p.equals("true") || p.isEmpty() : false;
     }
 
-    /* The original search path of URLs. */
-    private final ArrayList<URL> path;
-
     /* The deque of unopened URLs */
     private final ArrayDeque<URL> unopenedUrls;
 
-    /* The resulting search path of Loaders */
-    private final ArrayList<Loader> loaders = new ArrayList<>();
-
-    /* Map of each URL opened to its corresponding Loader */
-    private final HashMap<String, Loader> lmap = new HashMap<>();
+    private RuntimeHelper rh;
+    class RuntimeHelper {
+        /* The resulting search path of Loaders */
+        private final ArrayList<Loader> loaders = new ArrayList<>();
+        /* Map of each URL opened to its corresponding Loader */
+        private final HashMap<String, Loader> lmap = new HashMap<>();
+        /* The original search path of URLs. */
+        private final ArrayList<URL> path = new ArrayList<>();
+    }
 
     /* The jar protocol handler to use when creating new URLs */
     private final URLStreamHandler jarHandler;
@@ -152,13 +153,13 @@ public class URLClassPath {
     public URLClassPath(URL[] urls,
                         URLStreamHandlerFactory factory,
                         @SuppressWarnings("removal") AccessControlContext acc) {
-        ArrayList<URL> path = new ArrayList<>(urls.length);
+        rh = new RuntimeHelper();
+        rh.path.ensureCapacity(urls.length);
         ArrayDeque<URL> unopenedUrls = new ArrayDeque<>(urls.length);
         for (URL url : urls) {
-            path.add(url);
+            rh.path.add(url);
             unopenedUrls.add(url);
         }
-        this.path = path;
         this.unopenedUrls = unopenedUrls;
 
         if (factory != null) {
@@ -186,7 +187,7 @@ public class URLClassPath {
      * @apiNote Used to create the application class path.
      */
     URLClassPath(String cp, boolean skipEmptyElements) {
-        ArrayList<URL> path = new ArrayList<>();
+        rh = new RuntimeHelper();
         if (cp != null) {
             // map each element of class path to a file URL
             int off = 0, next;
@@ -197,7 +198,7 @@ public class URLClassPath {
                     : cp.substring(off, next);
                 if (!element.isEmpty() || !skipEmptyElements) {
                     URL url = toFileURL(element);
-                    if (url != null) path.add(url);
+                    if (url != null) rh.path.add(url);
                 }
                 off = next + 1;
             } while (next != -1);
@@ -205,13 +206,12 @@ public class URLClassPath {
 
         // can't use ArrayDeque#addAll or new ArrayDeque(Collection);
         // it's too early in the bootstrap to trigger use of lambdas
-        int size = path.size();
+        int size = rh.path.size();
         ArrayDeque<URL> unopenedUrls = new ArrayDeque<>(size);
         for (int i = 0; i < size; i++)
-            unopenedUrls.add(path.get(i));
+            unopenedUrls.add(rh.path.get(i));
 
         this.unopenedUrls = unopenedUrls;
-        this.path = path;
         this.jarHandler = null;
         this.acc = null;
     }
@@ -221,7 +221,7 @@ public class URLClassPath {
             return Collections.emptyList();
         }
         List<IOException> result = new LinkedList<>();
-        for (Loader loader : loaders) {
+        for (Loader loader : rh.loaders) {
             try {
                 loader.close();
             } catch (IOException e) {
@@ -243,9 +243,9 @@ public class URLClassPath {
         if (closed || url == null)
             return;
         synchronized (unopenedUrls) {
-            if (! path.contains(url)) {
+            if (! rh.path.contains(url)) {
                 unopenedUrls.addLast(url);
-                path.add(url);
+                rh.path.add(url);
             }
         }
     }
@@ -277,7 +277,7 @@ public class URLClassPath {
      */
     public URL[] getURLs() {
         synchronized (unopenedUrls) {
-            return path.toArray(new URL[0]);
+            return rh.path.toArray(new URL[0]);
         }
     }
 
@@ -429,7 +429,7 @@ public class URLClassPath {
         }
         // Expand URL search path until the request can be satisfied
         // or unopenedUrls is exhausted.
-        while (loaders.size() < index + 1) {
+        while (rh.loaders.size() < index + 1) {
             final URL url;
             synchronized (unopenedUrls) {
                 url = unopenedUrls.pollFirst();
@@ -440,7 +440,7 @@ public class URLClassPath {
             // may be null in the case where URL has not been opened
             // but is referenced by a JAR index.)
             String urlNoFragString = URLUtil.urlNoFragString(url);
-            if (lmap.containsKey(urlNoFragString)) {
+            if (rh.lmap.containsKey(urlNoFragString)) {
                 continue;
             }
             // Otherwise, create a new Loader for the URL.
@@ -466,10 +466,10 @@ public class URLClassPath {
                 continue;
             }
             // Finally, add the Loader to the search path.
-            loaders.add(loader);
-            lmap.put(urlNoFragString, loader);
+            rh.loaders.add(loader);
+            rh.lmap.put(urlNoFragString, loader);
         }
-        return loaders.get(index);
+        return rh.loaders.get(index);
     }
 
     /*
@@ -491,12 +491,12 @@ public class URLClassPath {
                                         file.endsWith("!/")) {
                                     // extract the nested URL
                                     URL nestedUrl = new URL(file.substring(0, file.length() - 2));
-                                    return new JarLoader(nestedUrl, jarHandler, lmap, acc);
+                                    return new JarLoader(nestedUrl, jarHandler, rh.lmap, acc);
                                 } else {
                                     return new Loader(url);
                                 }
                             } else {
-                                return new JarLoader(url, jarHandler, lmap, acc);
+                                return new JarLoader(url, jarHandler, rh.lmap, acc);
                             }
                         }
                     }, acc);
