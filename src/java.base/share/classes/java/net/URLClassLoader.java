@@ -250,22 +250,25 @@ public class URLClassLoader extends SecureClassLoader implements Closeable {
         this.ucp = new URLClassPath(urls, factory, acc);
     }
 
-    /* A map (used as a set) to keep track of closeable local resources
-     * (either JarFiles or FileInputStreams). We don't care about
-     * Http resources since they don't need to be closed.
-     *
-     * If the resource is coming from a jar file
-     * we keep a (weak) reference to the JarFile object which can
-     * be closed if URLClassLoader.close() called. Due to jar file
-     * caching there will typically be only one JarFile object
-     * per underlying jar file.
-     *
-     * For file resources, which is probably a less common situation
-     * we have to keep a weak reference to each stream.
-     */
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        /* A map (used as a set) to keep track of closeable local resources
+         * (either JarFiles or FileInputStreams). We don't care about
+         * Http resources since they don't need to be closed.
+         *
+         * If the resource is coming from a jar file
+         * we keep a (weak) reference to the JarFile object which can
+         * be closed if URLClassLoader.close() called. Due to jar file
+         * caching there will typically be only one JarFile object
+         * per underlying jar file.
+         *
+         * For file resources, which is probably a less common situation
+         * we have to keep a weak reference to each stream.
+         */
 
-    private WeakHashMap<Closeable,Void>
-        closeables = new WeakHashMap<>();
+        private WeakHashMap<Closeable, Void>
+                closeables = new WeakHashMap<>();
+    }
 
     /**
      * Returns an input stream for reading the specified resource.
@@ -296,14 +299,14 @@ public class URLClassLoader extends SecureClassLoader implements Closeable {
             InputStream is = urlc.getInputStream();
             if (urlc instanceof JarURLConnection juc) {
                 JarFile jar = juc.getJarFile();
-                synchronized (closeables) {
-                    if (!closeables.containsKey(jar)) {
-                        closeables.put(jar, null);
+                synchronized (rh.closeables) {
+                    if (!rh.closeables.containsKey(jar)) {
+                        rh.closeables.put(jar, null);
                     }
                 }
             } else if (urlc instanceof sun.net.www.protocol.file.FileURLConnection) {
-                synchronized (closeables) {
-                    closeables.put(is, null);
+                synchronized (rh.closeables) {
+                    rh.closeables.put(is, null);
                 }
             }
             return is;
@@ -350,8 +353,8 @@ public class URLClassLoader extends SecureClassLoader implements Closeable {
 
         // now close any remaining streams.
 
-        synchronized (closeables) {
-            Set<Closeable> keys = closeables.keySet();
+        synchronized (rh.closeables) {
+            Set<Closeable> keys = rh.closeables.keySet();
             for (Closeable c : keys) {
                 try {
                     c.close();
@@ -359,7 +362,7 @@ public class URLClassLoader extends SecureClassLoader implements Closeable {
                     errors.add(ioex);
                 }
             }
-            closeables.clear();
+            rh.closeables.clear();
         }
 
         if (errors.isEmpty()) {
