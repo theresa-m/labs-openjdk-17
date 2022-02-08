@@ -393,7 +393,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Holds cached entrySet(). Note that AbstractMap fields are used
      * for keySet() and values().
      */
-    transient Set<Map.Entry<K,V>> entrySet;
+    RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper<K,V> extends AbstractMap<K,V>.RuntimeHelper<K,V> {
+        transient Set<Map.Entry<K, V>> entrySet = null;
+    }
 
     /**
      * The number of key-value mappings contained in this map.
@@ -901,10 +904,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @return a set view of the keys contained in this map
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh.keySet;
         if (ks == null) {
             ks = new KeySet();
-            keySet = ks;
+            rh.keySet = ks;
         }
         return ks;
     }
@@ -1029,10 +1032,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @return a view of the values contained in this map
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh.values;
         if (vs == null) {
             vs = new Values();
-            values = vs;
+            rh.values = vs;
         }
         return vs;
     }
@@ -1088,7 +1091,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     public Set<Map.Entry<K,V>> entrySet() {
         Set<Map.Entry<K,V>> es;
-        return (es = entrySet) == null ? (entrySet = new EntrySet()) : es;
+        return (es = rh.entrySet) == null ? (rh.entrySet = new EntrySet()) : es;
     }
 
     final class EntrySet extends AbstractSet<Map.Entry<K,V>> {
@@ -1921,9 +1924,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     void reinitialize() {
         table = null;
-        entrySet = null;
-        keySet = null;
-        values = null;
+        rh.entrySet = null;
+        rh.keySet = null;
+        rh.values = null;
         modCount = 0;
         threshold = 0;
         size = 0;

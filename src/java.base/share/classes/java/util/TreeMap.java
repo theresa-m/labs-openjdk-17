@@ -915,9 +915,9 @@ public class TreeMap<K,V>
         clone.root = null;
         clone.size = 0;
         clone.modCount = 0;
-        clone.entrySet = null;
-        clone.navigableKeySet = null;
-        clone.descendingMap = null;
+        clone.rh.entrySet = null;
+        clone.rh.navigableKeySet = null;
+        clone.rh.descendingMap = null;
 
         // Initialize clone with our mappings
         try {
@@ -1056,14 +1056,18 @@ public class TreeMap<K,V>
 
     // Views
 
-    /**
-     * Fields initialized to contain an instance of the entry set view
-     * the first time this view is requested.  Views are stateless, so
-     * there's no reason to create more than one.
-     */
-    private transient EntrySet entrySet;
-    private transient KeySet<K> navigableKeySet;
-    private transient NavigableMap<K,V> descendingMap;
+
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper<K,V> extends AbstractMap<K,V>.RuntimeHelper<K,V> {
+        /**
+         * Fields initialized to contain an instance of the entry set view
+         * the first time this view is requested.  Views are stateless, so
+         * there's no reason to create more than one.
+         */
+        private transient EntrySet entrySet = null;
+        private transient KeySet<K> navigableKeySet = null;
+        private transient NavigableMap<K, V> descendingMap = null;
+    }
 
     /**
      * Returns a {@link Set} view of the keys contained in this map.
@@ -1098,8 +1102,8 @@ public class TreeMap<K,V>
      * @since 1.6
      */
     public NavigableSet<K> navigableKeySet() {
-        KeySet<K> nks = navigableKeySet;
-        return (nks != null) ? nks : (navigableKeySet = new KeySet<>(this));
+        KeySet<K> nks = rh.navigableKeySet;
+        return (nks != null) ? nks : (rh.navigableKeySet = new KeySet<>(this));
     }
 
     /**
@@ -1131,10 +1135,10 @@ public class TreeMap<K,V>
      * support the {@code add} or {@code addAll} operations.
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh.values;
         if (vs == null) {
             vs = new Values();
-            values = vs;
+            rh.values = vs;
         }
         return vs;
     }
@@ -1162,17 +1166,17 @@ public class TreeMap<K,V>
      * {@code add} or {@code addAll} operations.
      */
     public Set<Map.Entry<K,V>> entrySet() {
-        EntrySet es = entrySet;
-        return (es != null) ? es : (entrySet = new EntrySet());
+        EntrySet es = rh.entrySet;
+        return (es != null) ? es : (rh.entrySet = new EntrySet());
     }
 
     /**
      * @since 1.6
      */
     public NavigableMap<K, V> descendingMap() {
-        NavigableMap<K, V> km = descendingMap;
+        NavigableMap<K, V> km = rh.descendingMap;
         return (km != null) ? km :
-            (descendingMap = new DescendingSubMap<>(this,
+            (rh.descendingMap = new DescendingSubMap<>(this,
                                                     true, null, true,
                                                     true, null, true));
     }
@@ -2942,7 +2946,7 @@ public class TreeMap<K,V>
             @SuppressWarnings("unchecked") DescendingSubMap<K,?> dm =
                 (DescendingSubMap<K,?>) m;
             TreeMap<K,?> tm = dm.m;
-            if (dm == tm.descendingMap) {
+            if (dm == tm.rh.descendingMap) {
                 @SuppressWarnings("unchecked") TreeMap<K,Object> t =
                     (TreeMap<K,Object>) tm;
                 return t.descendingKeySpliterator();

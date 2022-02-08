@@ -704,7 +704,7 @@ public class IdentityHashMap<K,V>
     public Object clone() {
         try {
             IdentityHashMap<?,?> m = (IdentityHashMap<?,?>) super.clone();
-            m.entrySet = null;
+            m.rh.entrySet = null;
             m.table = table.clone();
             return m;
         } catch (CloneNotSupportedException e) {
@@ -923,7 +923,10 @@ public class IdentityHashMap<K,V>
      * view the first time this view is requested.  The view is stateless,
      * so there's no reason to create more than one.
      */
-    private transient Set<Map.Entry<K,V>> entrySet;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper<K,V> extends AbstractMap<K,V>.RuntimeHelper<K,V> {
+        private transient Set<Map.Entry<K, V>> entrySet = null;
+    }
 
     /**
      * Returns an identity-based set view of the keys contained in this map.
@@ -964,10 +967,10 @@ public class IdentityHashMap<K,V>
      * @see System#identityHashCode(Object)
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh.keySet;
         if (ks == null) {
             ks = new KeySet();
-            keySet = ks;
+            rh.keySet = ks;
         }
         return ks;
     }
@@ -1070,10 +1073,10 @@ public class IdentityHashMap<K,V>
      * {@code containsAll} methods.</b>
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh.values;
         if (vs == null) {
             vs = new Values();
-            values = vs;
+            rh.values = vs;
         }
         return vs;
     }
@@ -1175,11 +1178,11 @@ public class IdentityHashMap<K,V>
      * @return a set view of the identity-mappings contained in this map
      */
     public Set<Map.Entry<K,V>> entrySet() {
-        Set<Map.Entry<K,V>> es = entrySet;
+        Set<Map.Entry<K,V>> es = rh.entrySet;
         if (es != null)
             return es;
         else
-            return entrySet = new EntrySet();
+            return rh.entrySet = new EntrySet();
     }
 
     private class EntrySet extends AbstractSet<Map.Entry<K,V>> {

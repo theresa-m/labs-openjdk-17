@@ -529,10 +529,10 @@ public class LinkedHashMap<K,V>
      * @return a set view of the keys contained in this map
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh.keySet;
         if (ks == null) {
             ks = new LinkedKeySet();
-            keySet = ks;
+            rh.keySet = ks;
         }
         return ks;
     }
@@ -611,10 +611,10 @@ public class LinkedHashMap<K,V>
      * @return a view of the values contained in this map
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh.values;
         if (vs == null) {
             vs = new LinkedValues();
-            values = vs;
+            rh.values = vs;
         }
         return vs;
     }
@@ -671,7 +671,7 @@ public class LinkedHashMap<K,V>
      */
     public Set<Map.Entry<K,V>> entrySet() {
         Set<Map.Entry<K,V>> es;
-        return (es = entrySet) == null ? (entrySet = new LinkedEntrySet()) : es;
+        return (es = rh.entrySet) == null ? (rh.entrySet = new LinkedEntrySet()) : es;
     }
 
     final class LinkedEntrySet extends AbstractSet<Map.Entry<K,V>> {

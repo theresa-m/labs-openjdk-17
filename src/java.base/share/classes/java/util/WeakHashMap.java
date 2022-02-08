@@ -851,7 +851,10 @@ public class WeakHashMap<K,V>
 
     // Views
 
-    private transient Set<Map.Entry<K,V>> entrySet;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper<K,V> extends AbstractMap<K,V>.RuntimeHelper<K,V> {
+        private transient Set<Map.Entry<K, V>> entrySet = null;
+    }
 
     /**
      * Returns a {@link Set} view of the keys contained in this map.
@@ -867,10 +870,10 @@ public class WeakHashMap<K,V>
      * operations.
      */
     public Set<K> keySet() {
-        Set<K> ks = keySet;
+        Set<K> ks = rh.keySet;
         if (ks == null) {
             ks = new KeySet();
-            keySet = ks;
+            rh.keySet = ks;
         }
         return ks;
     }
@@ -920,10 +923,10 @@ public class WeakHashMap<K,V>
      * support the {@code add} or {@code addAll} operations.
      */
     public Collection<V> values() {
-        Collection<V> vs = values;
+        Collection<V> vs = rh.values;
         if (vs == null) {
             vs = new Values();
-            values = vs;
+            rh.values = vs;
         }
         return vs;
     }
@@ -965,8 +968,8 @@ public class WeakHashMap<K,V>
      * {@code add} or {@code addAll} operations.
      */
     public Set<Map.Entry<K,V>> entrySet() {
-        Set<Map.Entry<K,V>> es = entrySet;
-        return es != null ? es : (entrySet = new EntrySet());
+        Set<Map.Entry<K,V>> es = rh.entrySet;
+        return es != null ? es : (rh.entrySet = new EntrySet());
     }
 
     private class EntrySet extends AbstractSet<Map.Entry<K,V>> {
