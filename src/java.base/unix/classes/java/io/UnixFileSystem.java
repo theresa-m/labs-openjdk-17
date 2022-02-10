@@ -44,8 +44,6 @@ class UnixFileSystem extends FileSystem {
         colon = props.getProperty("path.separator").charAt(0);
         javaHome = StaticProperty.javaHome();
         userDir = StaticProperty.userDir();
-        cache = useCanonCaches ? new ExpiringCache() : null;
-        javaHomePrefixCache = useCanonPrefixCache ? new ExpiringCache() : null;
     }
 
 
@@ -152,24 +150,27 @@ class UnixFileSystem extends FileSystem {
         return resolve(userDir, f.getPath());
     }
 
-    // Caches for canonicalization results to improve startup performance.
-    // The first cache handles repeated canonicalizations of the same path
-    // name. The prefix cache handles repeated canonicalizations within the
-    // same directory, and must not create results differing from the true
-    // canonicalization algorithm in canonicalize_md.c. For this reason the
-    // prefix cache is conservative and is not used for complex path names.
-    private final ExpiringCache cache;
-    // On Unix symlinks can jump anywhere in the file system, so we only
-    // treat prefixes in java.home as trusted and cacheable in the
-    // canonicalization algorithm
-    private final ExpiringCache javaHomePrefixCache;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        // Caches for canonicalization results to improve startup performance.
+        // The first cache handles repeated canonicalizations of the same path
+        // name. The prefix cache handles repeated canonicalizations within the
+        // same directory, and must not create results differing from the true
+        // canonicalization algorithm in canonicalize_md.c. For this reason the
+        // prefix cache is conservative and is not used for complex path names.
+        private final ExpiringCache cache = new ExpiringCache();
+        // On Unix symlinks can jump anywhere in the file system, so we only
+        // treat prefixes in java.home as trusted and cacheable in the
+        // canonicalization algorithm
+        private final ExpiringCache javaHomePrefixCache = new ExpiringCache();
+    }
 
     @Override
     public String canonicalize(String path) throws IOException {
         if (!useCanonCaches) {
             return canonicalize0(path);
         } else {
-            String res = cache.get(path);
+            String res = rh.cache.get(path);
             if (res == null) {
                 String dir = null;
                 String resDir;
@@ -179,18 +180,18 @@ class UnixFileSystem extends FileSystem {
                     // resolved to the directory they're contained in
                     dir = parentOrNull(path);
                     if (dir != null) {
-                        resDir = javaHomePrefixCache.get(dir);
+                        resDir = rh.javaHomePrefixCache.get(dir);
                         if (resDir != null) {
                             // Hit only in prefix cache; full path is canonical
                             String filename = path.substring(1 + dir.length());
                             res = resDir + slash + filename;
-                            cache.put(dir + slash + filename, res);
+                            rh.cache.put(dir + slash + filename, res);
                         }
                     }
                 }
                 if (res == null) {
                     res = canonicalize0(path);
-                    cache.put(path, res);
+                    rh.cache.put(path, res);
                     if (useCanonPrefixCache &&
                         dir != null && dir.startsWith(javaHome)) {
                         resDir = parentOrNull(res);
@@ -201,7 +202,7 @@ class UnixFileSystem extends FileSystem {
                         if (resDir != null && resDir.equals(dir)) {
                             File f = new File(res);
                             if (f.exists() && !f.isDirectory()) {
-                                javaHomePrefixCache.put(dir, resDir);
+                                rh.javaHomePrefixCache.put(dir, resDir);
                             }
                         }
                     }
@@ -303,10 +304,10 @@ class UnixFileSystem extends FileSystem {
         // not worth it since these entries expire after 30 seconds
         // anyway.
         if (useCanonCaches) {
-            cache.clear();
+            rh.cache.clear();
         }
         if (useCanonPrefixCache) {
-            javaHomePrefixCache.clear();
+            rh.javaHomePrefixCache.clear();
         }
         return delete0(f);
     }
@@ -326,10 +327,10 @@ class UnixFileSystem extends FileSystem {
         // not worth it since these entries expire after 30 seconds
         // anyway.
         if (useCanonCaches) {
-            cache.clear();
+            rh.cache.clear();
         }
         if (useCanonPrefixCache) {
-            javaHomePrefixCache.clear();
+            rh.javaHomePrefixCache.clear();
         }
         return rename0(f1, f2);
     }
