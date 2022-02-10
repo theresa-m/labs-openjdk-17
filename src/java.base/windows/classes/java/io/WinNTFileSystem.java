@@ -51,8 +51,6 @@ class WinNTFileSystem extends FileSystem {
         semicolon = props.getProperty("path.separator").charAt(0);
         altSlash = (this.slash == '\\') ? '/' : '\\';
         userDir = normalize(props.getProperty("user.dir"));
-        cache = useCanonCaches ? new ExpiringCache() : null;
-        prefixCache = useCanonPrefixCache ? new ExpiringCache() : null;
     }
 
     private boolean isSlash(char c) {
@@ -384,14 +382,17 @@ class WinNTFileSystem extends FileSystem {
         return s;
     }
 
-    // Caches for canonicalization results to improve startup performance.
-    // The first cache handles repeated canonicalizations of the same path
-    // name. The prefix cache handles repeated canonicalizations within the
-    // same directory, and must not create results differing from the true
-    // canonicalization algorithm in canonicalize_md.c. For this reason the
-    // prefix cache is conservative and is not used for complex path names.
-    private final ExpiringCache cache;
-    private final ExpiringCache prefixCache;
+    private RuntimeHelper rh = new RuntimeHelper();
+    class RuntimeHelper {
+        // Caches for canonicalization results to improve startup performance.
+        // The first cache handles repeated canonicalizations of the same path
+        // name. The prefix cache handles repeated canonicalizations within the
+        // same directory, and must not create results differing from the true
+        // canonicalization algorithm in canonicalize_md.c. For this reason the
+        // prefix cache is conservative and is not used for complex path names.
+        private final ExpiringCache cache = new ExpiringCache();
+        private final ExpiringCache prefixCache = new ExpiringCache();
+    }
 
     @Override
     public String canonicalize(String path) throws IOException {
