@@ -280,11 +280,13 @@ public class VM {
         }
     }
 
-    /* Current count of objects pending for finalization */
-    private static volatile int finalRefCount;
+    class RuntimeHelper {
+        /* Current count of objects pending for finalization */
+        private static volatile int finalRefCount;
 
-    /* Peak count of objects pending for finalization */
-    private static volatile int peakFinalRefCount;
+        /* Peak count of objects pending for finalization */
+        private static volatile int peakFinalRefCount;
+    }
 
     /*
      * Gets the number of objects pending for finalization.
@@ -292,7 +294,7 @@ public class VM {
      * @return the number of objects pending for finalization.
      */
     public static int getFinalRefCount() {
-        return finalRefCount;
+        return RuntimeHelper.finalRefCount;
     }
 
     /*
@@ -301,7 +303,7 @@ public class VM {
      * @return the peak number of objects pending for finalization.
      */
     public static int getPeakFinalRefCount() {
-        return peakFinalRefCount;
+        return RuntimeHelper.peakFinalRefCount;
     }
 
     /*
@@ -313,9 +315,9 @@ public class VM {
     public static void addFinalRefCount(int n) {
         // The caller must hold lock to synchronize the update.
 
-        finalRefCount += n;
-        if (finalRefCount > peakFinalRefCount) {
-            peakFinalRefCount = finalRefCount;
+        RuntimeHelper.finalRefCount += n;
+        if (RuntimeHelper.finalRefCount > RuntimeHelper.peakFinalRefCount) {
+            RuntimeHelper.peakFinalRefCount = RuntimeHelper.finalRefCount;
         }
     }
 
