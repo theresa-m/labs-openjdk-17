@@ -251,7 +251,7 @@ final class ProviderConfig {
                     debug.println("Loading provider " + ProviderConfig.this);
                 }
                 try {
-                    Provider p = ProviderLoader.INSTANCE.load(provName);
+                    Provider p = ProviderLoader.RuntimeHelper.INSTANCE.load(provName);
                     if (p != null) {
                         if (hasArgument()) {
                             p = p.configure(argument);
@@ -317,7 +317,9 @@ final class ProviderConfig {
 
     // Inner class for loading security providers listed in java.security file
     private static final class ProviderLoader {
-        static final ProviderLoader INSTANCE = new ProviderLoader();
+        class RuntimeHelper {
+            static final ProviderLoader INSTANCE = new ProviderLoader();
+        }
 
         private final ServiceLoader<Provider> services;
 
