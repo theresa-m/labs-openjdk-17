@@ -555,7 +555,7 @@ public abstract class TimeZone implements Serializable, Cloneable {
 
     private ZoneId toZoneId0() {
         String id = getID();
-        TimeZone defaultZone = defaultTimeZone;
+        TimeZone defaultZone = RuntimeHelper.defaultTimeZone;
         // are we not defaultTimeZone but our id is equal to default's?
         if (defaultZone != this &&
             defaultZone != null && id.equals(defaultZone.getID())) {
@@ -648,7 +648,7 @@ public abstract class TimeZone implements Serializable, Cloneable {
      * method doesn't create a clone.
      */
     static TimeZone getDefaultRef() {
-        TimeZone defaultZone = defaultTimeZone;
+        TimeZone defaultZone = RuntimeHelper.defaultTimeZone;
         if (defaultZone == null) {
             // Need to initialize the default time zone.
             defaultZone = setDefaultZone();
@@ -697,7 +697,7 @@ public abstract class TimeZone implements Serializable, Cloneable {
         final String id = zoneID;
         props.setProperty("user.timezone", id);
 
-        defaultTimeZone = tz;
+        RuntimeHelper.defaultTimeZone = tz;
         return tz;
     }
 
@@ -727,7 +727,7 @@ public abstract class TimeZone implements Serializable, Cloneable {
         // effectively immutable. This is important to avoid races when the
         // following is evaluated in ZoneId.systemDefault():
         // TimeZone.getDefault().toZoneId().
-        defaultTimeZone = (zone == null) ? null : (TimeZone) zone.clone();
+        RuntimeHelper.defaultTimeZone = (zone == null) ? null : (TimeZone) zone.clone();
     }
 
     /**
@@ -780,8 +780,9 @@ public abstract class TimeZone implements Serializable, Cloneable {
      */
     private transient ZoneId zoneId;
 
-    private static volatile TimeZone defaultTimeZone;
-
+    class RuntimeHelper {
+        private static volatile TimeZone defaultTimeZone;
+    }
     static final String         GMT_ID        = "GMT";
     private static final int    GMT_ID_LENGTH = 3;
 
