@@ -143,11 +143,14 @@ public final class ZoneRules implements Serializable {
      * The last rule.
      */
     private final ZoneOffsetTransitionRule[] lastRules;
-    /**
-     * The map of recent transitions.
-     */
-    private final transient ConcurrentMap<Integer, ZoneOffsetTransition[]> lastRulesCache =
+
+    class RuntimeHelper {
+        /**
+         * The map of recent transitions.
+         */
+        private final transient ConcurrentMap<Integer, ZoneOffsetTransition[]> lastRulesCache =
                 new ConcurrentHashMap<Integer, ZoneOffsetTransition[]>();
+    }
     /**
      * The zero-length long array.
      */
@@ -745,7 +748,7 @@ public final class ZoneRules implements Serializable {
      */
     private ZoneOffsetTransition[] findTransitionArray(int year) {
         Integer yearObj = year;  // should use Year class, but this saves a class load
-        ZoneOffsetTransition[] transArray = lastRulesCache.get(yearObj);
+        ZoneOffsetTransition[] transArray = RuntimeHelper.lastRulesCache.get(yearObj);
         if (transArray != null) {
             return transArray;
         }
@@ -755,7 +758,7 @@ public final class ZoneRules implements Serializable {
             transArray[i] = ruleArray[i].createTransition(year);
         }
         if (year < LAST_CACHED_YEAR) {
-            lastRulesCache.putIfAbsent(yearObj, transArray);
+            RuntimeHelper.lastRulesCache.putIfAbsent(yearObj, transArray);
         }
         return transArray;
     }
