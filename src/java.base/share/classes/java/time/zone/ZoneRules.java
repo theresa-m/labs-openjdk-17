@@ -144,6 +144,7 @@ public final class ZoneRules implements Serializable {
      */
     private final ZoneOffsetTransitionRule[] lastRules;
 
+    private RuntimeHelper rh = new RuntimeHelper();
     class RuntimeHelper {
         /**
          * The map of recent transitions.
@@ -748,7 +749,7 @@ public final class ZoneRules implements Serializable {
      */
     private ZoneOffsetTransition[] findTransitionArray(int year) {
         Integer yearObj = year;  // should use Year class, but this saves a class load
-        ZoneOffsetTransition[] transArray = RuntimeHelper.lastRulesCache.get(yearObj);
+        ZoneOffsetTransition[] transArray = rh.lastRulesCache.get(yearObj);
         if (transArray != null) {
             return transArray;
         }
@@ -758,7 +759,7 @@ public final class ZoneRules implements Serializable {
             transArray[i] = ruleArray[i].createTransition(year);
         }
         if (year < LAST_CACHED_YEAR) {
-            RuntimeHelper.lastRulesCache.putIfAbsent(yearObj, transArray);
+            rh.lastRulesCache.putIfAbsent(yearObj, transArray);
         }
         return transArray;
     }
